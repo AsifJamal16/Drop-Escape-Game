@@ -1,0 +1,225 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dodge the Drops</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f1f5f9;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    #score {
+      font-size: 22px;
+      margin-bottom: 15px;
+    }
+
+    #game {
+      width: 400px;
+      height: 500px;
+      max-width: 100%;
+      margin: auto;
+      background: white;
+      border: 3px solid #222;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #player {
+      width: 60px;
+      height: 25px;
+      background: royalblue;
+      position: absolute;
+      bottom: 10px;
+      left: 170px;
+      border-radius: 5px;
+    }
+
+    .drop {
+      width: 20px;
+      height: 20px;
+      background: crimson;
+      border-radius: 50%;
+      position: absolute;
+      top: 0;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    #message {
+      margin-top: 12px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Drop Escape</h1>
+  <p id="score">Score: 0</p>
+
+  <div id="game">
+    <div id="player"></div>
+  </div>
+
+  <p id="message">Use ← and → to move</p>
+  <button id="restart">Restart Game</button>
+
+  <script>
+    let game = document.querySelector('#game');
+    let player = document.querySelector('#player');
+    let scoreText = document.querySelector('#score');
+    let message = document.querySelector('#message');
+    let restartBtn = document.querySelector('#restart');
+
+    let playerPos = 170;
+    let score = 0;
+    let gameOver = false;
+    let drops = [];
+    let dropTimer;
+    let gameTimer;
+    let highScore = 0;
+
+    function movePlayer(event) {
+      if (gameOver) return;
+
+      if (event.key === 'ArrowLeft') {
+        playerPos -= 20;
+      }
+      else if (event.key === 'ArrowRight') {
+        playerPos += 20;
+      }
+
+      if (playerPos < 0) {
+        playerPos = 0;
+      }
+
+      if (playerPos > game.clientWidth - player.offsetWidth) {
+        playerPos = game.clientWidth - player.offsetWidth;
+      }
+
+      player.style.left = playerPos + 'px';
+    }
+
+    function createDrop() {
+      if (gameOver) return;
+
+      let drop = document.createElement('div');
+      drop.classList.add('drop');
+
+      let dropPos = Math.random() * (game.clientWidth - 20);
+
+      drop.style.left = dropPos + 'px';
+      game.appendChild(drop);
+
+      drops.push({
+        element: drop,
+        x: dropPos,
+        y: 0,
+        speed: 3 + Math.random() * 2,
+        saved: false
+      });
+    }
+
+    function endGame() {
+      gameOver = true;
+      clearInterval(dropTimer);
+      clearInterval(gameTimer);
+
+      if (score > highScore) {
+        highScore = score;
+      }
+
+      message.innerText =
+        'Game Over! Score: ' + score +
+        ' | High Score: ' + highScore;
+    }
+
+    function updateGame() {
+      if (gameOver) return;
+
+      for (let i = drops.length - 1; i >= 0; i--) {
+        let drop = drops[i];
+
+        drop.y += drop.speed;
+        drop.element.style.top = drop.y + 'px';
+
+        let playerRect = player.getBoundingClientRect();
+        let dropRect = drop.element.getBoundingClientRect();
+
+        if (
+          playerRect.left < dropRect.right &&
+          playerRect.right > dropRect.left &&
+          playerRect.top < dropRect.bottom &&
+          playerRect.bottom > dropRect.top
+        ) {
+          endGame();
+          return;
+        }
+
+        if (
+          !drop.saved &&
+          drop.y > game.clientHeight - 10
+        ) {
+          score++;
+          drop.saved = true;
+          scoreText.innerText = 'Score: ' + score;
+        }
+
+        if (drop.y > game.clientHeight) {
+          drop.element.remove();
+          drops.splice(i, 1);
+        }
+      }
+    }
+
+    function startGame() {
+      clearInterval(dropTimer);
+      clearInterval(gameTimer);
+
+      drops.forEach(function(drop) {
+        drop.element.remove();
+      });
+
+      drops = [];
+      score = 0;
+      playerPos = (game.clientWidth - player.offsetWidth) / 2;
+      gameOver = false;
+
+      player.style.left = playerPos + 'px';
+      scoreText.innerText = 'Score: 0';
+      message.innerText = 'Use ← and → to move';
+
+      dropTimer = setInterval(createDrop, 800);
+      gameTimer = setInterval(updateGame, 20);
+    }
+
+    document.addEventListener('keydown', movePlayer);
+    restartBtn.addEventListener('click', startGame);
+
+    startGame();
+  </script>
+
+</body>
+</html>
